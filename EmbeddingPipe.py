@@ -6,31 +6,40 @@ from transformers import AutoModel
 class JinaEmbeddingPipeline:
     def __init__(self, model_name="jinaai/jina-embeddings-v4"):
         print(f"Lade Modell '{model_name}'...")
-        self.device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+        self.device = (
+            "cuda" if torch.cuda.is_available()
+            else "mps" if torch.backends.mps.is_available()
+            else "cpu"
+        )
         self.model = AutoModel.from_pretrained(
             model_name,
             trust_remote_code=True,
-            torch_dtype=torch.float16
+            dtype=torch.float16,
         ).to(self.device)
         self.model.eval()
         print(f"Modell geladen auf {self.device}.")
 
-    @torch.no_grad()
-    def encode(self, texts, batch_size=32) -> np.ndarray:
+    def encode(self, texts: list[str], batch_size: int = 8, task: str = "text-matching") -> np.ndarray:
         all_embeddings = []
         for i in range(0, len(texts), batch_size):
-            batch_texts = texts[i:i + batch_size]
-            embeddings = self.model.encode(
-                batch_texts, 
-                task="text_matching",
-                return_tensors="pt"
-            )
-            all_embeddings.append(embeddings.cpu().numpy())
+            batch = texts[i : i + batch_size]
+            embeddings = self.model.encode_text(texts=batch, task=task)
+            if isinstance(embeddings, torch.Tensor):
+                all_embeddings.append(embeddings.cpu().float().numpy())
+            else:
+                # Liste von Tensors abfangen
+                arr = np.array([
+                    e.cpu().float().numpy() if isinstance(e, torch.Tensor) else e
+                    for e in embeddings
+                ])
+                all_embeddings.append(arr)
         return np.vstack(all_embeddings)
-    
-EmbeddingPipe = JinaEmbeddingPipeline()
 
-def truncate_and_normalize(embeddings, dim) -> np.ndarray:
+
+pipeline = JinaEmbeddingPipeline()
+
+
+def truncate_and_normalize(embeddings: np.ndarray, dim: int) -> np.ndarray:
     truncated = embeddings[:, :dim]
     norms = np.linalg.norm(truncated, axis=1, keepdims=True)
-    return truncated / norms
+    return truncated / np.maximum(norms, 1e-9)

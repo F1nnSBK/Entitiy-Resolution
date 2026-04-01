@@ -38,4 +38,4 @@ class SAPMasterDataGenerator:
             noisy_data.append({"ground_truth_id": row['id'], "text": text})
         return pd.DataFrame(noisy_data)
     
-DataGenerator = SAPMasterDataGenerator()
+data_generator = SAPMasterDataGenerator()
