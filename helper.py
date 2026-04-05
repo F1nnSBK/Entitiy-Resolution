@@ -48,12 +48,14 @@ def setup_device():
 def make_faiss_index(dim: int, device) -> "faiss.Index":
     import faiss
 
-    index = faiss.IndexFlatL2(dim)
+    index = faiss.IndexHNSWFlat(dim, 32)
+    index.hnsw.efConstruction = 200
+    index.hnsw.efSearch = 64
+
     if device.type == "cuda":
         res = faiss.StandardGpuResources()
         index = faiss.index_cpu_to_gpu(res, 0, index)
     return index
-
 
 def print_environment_info(in_kaggle_fn, device):
     import transformers
