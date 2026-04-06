@@ -12,9 +12,14 @@ def setup_environment():
         return "KAGGLE_KERNEL_RUN_TYPE" in os.environ
 
     def install(pkg):
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", pkg])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--disable-pip-version-check", pkg])
 
-    for pkg in ["transformers", "faker", "matplotlib", "seaborn", "scikit-learn", "pandas", "numpy"]:
+    standard_pkgs = ["faker", "matplotlib", "seaborn", "scikit-learn", "pandas", "numpy"]
+    
+    print(f"Installiere transformers==4.57.6...")
+    install("transformers==4.57.6")
+
+    for pkg in standard_pkgs:
         install(pkg)
 
     try:
